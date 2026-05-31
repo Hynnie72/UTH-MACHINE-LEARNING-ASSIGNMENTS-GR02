@@ -1,0 +1,6 @@
+matplotlib
+seaborn
+pandas
+numpy
+nltk
+bs4
