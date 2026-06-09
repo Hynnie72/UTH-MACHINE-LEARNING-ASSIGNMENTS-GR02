@@ -50,8 +50,7 @@ class CustomGridSearchCV:
             self.estimator.set_params(**params)
             fold_scores = []
             
-            for train_idx, val_idx in self.cv.split(X):
-                # [BẢN VÁ]: Logic slicing an toàn cho cả Dataframe, Numpy Array và Sparse Matrix
+            for train_idx, val_idx in self.cv.split(X, y):
                 if is_sparse:
                     X_train, X_val = X[train_idx], X[val_idx]
                 else:
@@ -78,7 +77,7 @@ class CustomGridSearchCV:
         print(f"\n-> Tham số TỐT NHẤT: {self.best_params_}")
         print(f"-> Điểm {self.scoring} TỐT NHẤT: {self.best_score_:.4f}")
         
-        # Huấn luyện lại model cuối cùng trên TOÀN BỘ tập train
+        # Train model on all Training set
         self.estimator.set_params(**self.best_params_)
         self.estimator.fit(X, y)
         self.best_estimator_ = self.estimator
