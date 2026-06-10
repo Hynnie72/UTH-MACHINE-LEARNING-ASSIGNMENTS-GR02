@@ -51,7 +51,7 @@ class CustomGridSearchCV:
             fold_scores = []
             
             for train_idx, val_idx in self.cv.split(X):
-                # [BẢN VÁ]: Logic slicing an toàn cho cả Dataframe, Numpy Array và Sparse Matrix
+                # Logic slicing an toàn cho cả Dataframe, Numpy Array và Sparse Matrix
                 if is_sparse:
                     X_train, X_val = X[train_idx], X[val_idx]
                 else:
