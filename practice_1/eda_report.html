@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enron Spam Mail EDA Report</title>
+  <style>
+    :root {
+      --bg: #f6f7fb;
+      --panel: #ffffff;
+      --ink: #1f2937;
+      --muted: #667085;
+      --line: #d9dee8;
+      --spam: #d94a3a;
+      --ham: #2f9d68;
+      --accent: #3b78c2;
+      --amber: #c4852a;
+      --violet: #7b5bb7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      line-height: 1.55;
+    }
+
+    .page {
+      width: min(1120px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+
+    header {
+      padding: 28px 0 22px;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 24px;
+    }
+
+    h1, h2, h3, p {
+      margin-top: 0;
+    }
+
+    h1 {
+      font-size: clamp(30px, 5vw, 52px);
+      line-height: 1.05;
+      margin-bottom: 12px;
+      letter-spacing: 0;
+    }
+
+    h2 {
+      font-size: 24px;
+      margin-bottom: 14px;
+    }
+
+    h3 {
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      max-width: 880px;
+      color: var(--muted);
+      font-size: 17px;
+      margin-bottom: 0;
+    }
+
+    .source-note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-top: 14px;
+    }
+
+    section {
+      margin-top: 26px;
+      padding: 22px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    .part-header {
+      margin-top: 34px;
+      padding: 18px 22px;
+      background: #253447;
+      color: #ffffff;
+      border-radius: 8px;
+    }
+
+    .part-header h2 {
+      margin: 0 0 6px;
+      color: #ffffff;
+    }
+
+    .part-header p {
+      margin: 0;
+      color: #d7deea;
+    }
+
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .grid.cols-4 {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .grid.cols-3 {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .grid.cols-2 {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .metric {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcff;
+      min-height: 118px;
+    }
+
+    .metric .label {
+      color: var(--muted);
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0;
+      margin-bottom: 10px;
+    }
+
+    .metric .value {
+      font-size: 30px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .metric .detail {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .bar-list {
+      display: grid;
+      gap: 14px;
+      margin-top: 8px;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: 170px 1fr 100px;
+      gap: 12px;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .bar-track {
+      height: 16px;
+      background: #e8ecf3;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+    }
+
+    .spam {
+      background: var(--spam);
+    }
+
+    .ham {
+      background: var(--ham);
+    }
+
+    .accent {
+      background: var(--accent);
+    }
+
+    .amber {
+      background: var(--amber);
+    }
+
+    .violet {
+      background: var(--violet);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f1f4f9;
+      font-weight: 700;
+    }
+
+    .figure-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .figure-grid.single {
+      grid-template-columns: 1fr;
+    }
+
+    figure {
+      margin: 0;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcff;
+    }
+
+    figure img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+
+    figcaption {
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .insight {
+      border-left: 4px solid var(--accent);
+      padding: 12px 14px;
+      background: #f5f8fc;
+      color: #2d3b4f;
+      margin: 14px 0 0;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .tag {
+      border: 1px solid var(--line);
+      background: #fbfcff;
+      border-radius: 999px;
+      padding: 6px 10px;
+      font-size: 13px;
+      color: #344054;
+    }
+
+    .mini-title {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      margin: 0 0 8px;
+    }
+
+    .callout {
+      background: #fff8ed;
+      border: 1px solid #efd1a1;
+      padding: 14px;
+      border-radius: 8px;
+    }
+
+    .callout strong {
+      color: #7a4c12;
+    }
+
+    .claim-list {
+      margin: 0;
+      padding-left: 18px;
+    }
+
+    .claim-list li {
+      margin-bottom: 10px;
+    }
+
+    .claim-list li:last-child {
+      margin-bottom: 0;
+    }
+
+    .split-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .split-item {
+      padding: 13px 14px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fbfcff;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 0;
+    }
+
+    @media (max-width: 840px) {
+      .grid.cols-4,
+      .grid.cols-3,
+      .grid.cols-2,
+      .figure-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-row {
+        grid-template-columns: 1fr;
+        gap: 6px;
+      }
+
+      section {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header>
+      <h1>Enron Spam Mail EDA Report</h1>
+      <p class="subtitle">A compact visual summary of the Exploratory Data Analysis section from the notebook, focused on dataset structure, missing values, text patterns, class differences, and outlier decisions for spam classification.</p>
+      <p class="source-note">Source: <code>practice_1/01-02-eda-data-preprocessing.ipynb</code> </p>
+    </header>
+
+    <div class="part-header">
+      <h2>Part 1. Loading The Input Dataset</h2>
+      <p>Dataset source, historical background, and why this corpus is suitable for Spam/Ham classification.</p>
+    </div>
+
+    <section>
+      <h2>Dataset Overview</h2>
+      <p>The dataset used in this project is sourced from the GitHub archive: <a href = "https://github.com/MWiechmann/enron_spam_data/blob/master/enron_spam_data.zip"> enron_spam_data </a>. The notebook describes this version as a pre-processed and consolidated CSV file, while the original dataset consisted of many individual text files.</p>
+      <div class="grid cols-2">
+        <div class="callout">
+          <strong>Historical context:</strong> Enron went bankrupt in 2001 after a major financial fraud scandal. During the investigation, the U.S. Federal Energy Regulatory Commission seized and publicly released Enron's email server database.
+        </div>
+        <div class="callout">
+          <strong>Classification context:</strong> Enron's released server mainly contained work emails. In 2006, V. Metsis, I. Androutsopoulos, and G. Paliouras injected real spam collected from spam traps, SpamAssassin, and web sources to create six balanced Enron Ham and Spam datasets.
+        </div>
+      </div>
+      <p class="insight">The notebook frames this dataset as a practical Spam/Ham classification corpus because it combines authentic corporate Ham emails with externally collected Spam examples.</p>
+    </section>
+
+    <div class="part-header">
+      <h2>Part 2. Data Overview</h2>
+      <p>Basic raw dataset structure, null-value signals, and Spam/Ham class distribution.</p>
+    </div>
+
+    <section>
+      <h2>Dataset Snapshot</h2>
+      <p>The notebook begins by checking sample count, feature count, null values, and label distribution. It also notes that only <code>Message ID</code> is numeric; the other columns are string/object fields.</p>
+      <div class="grid cols-4">
+        <div class="metric">
+          <div class="label">Raw Samples</div>
+          <div class="value">33,716</div>
+          <div class="detail">Emails in the original CSV.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Raw Features</div>
+          <div class="value">5</div>
+          <div class="detail">Message ID, Subject, Message, Spam/Ham, Date.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Spam</div>
+          <div class="value">17,171</div>
+          <div class="detail">Slightly above Ham.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Ham</div>
+          <div class="value">16,545</div>
+          <div class="detail">Class gap is about 1.85%.</div>
+        </div>
+      </div>
+      <div class="bar-list" aria-label="Spam and Ham distribution">
+        <div class="bar-row">
+          <strong>Spam</strong>
+          <div class="bar-track"><div class="bar-fill spam" style="width: 50.93%;"></div></div>
+          <span>17,171</span>
+        </div>
+        <div class="bar-row">
+          <strong>Ham</strong>
+          <div class="bar-track"><div class="bar-fill ham" style="width: 49.07%;"></div></div>
+          <span>16,545</span>
+        </div>
+      </div>
+      <div class="figure-grid single">
+        <figure>
+          <img src="assets/eda_report/class_distribution.png" alt="Class distribution bar chart from the EDA notebook">
+          <figcaption>Notebook diagram: Spam/Ham class distribution in the raw dataset.</figcaption>
+        </figure>
+      </div>
+      <p class="insight">The notebook treats the raw dataset as well-balanced because Spam only slightly exceeds Ham. The difference is described as negligible, so class imbalance is not a major concern at the raw-data stage.</p>
+    </section>
+
+    <div class="part-header">
+      <h2>Part 3. Missing Data Analysis</h2>
+      <p>Missing Subject and Message patterns, handling decisions, and subject-line behavior signals.</p>
+    </div>
+
+    <section>
+      <h2>Missing Data Analysis</h2>
+      <p>The EDA first checks missing values across the raw dataset, then separates missingness into Subject-only, Message-only, and both-feature cases. The notebook makes different decisions for the two text fields because an email body and an email subject do not carry the same modeling value.</p>
+      <div class="split-list">
+        <div class="split-item"><strong>Message rule:</strong> if <code>Message</code> is null or an empty string, drop the record because an email without body content has no predictive value.</div>
+        <div class="split-item"><strong>Subject rule:</strong> if <code>Subject</code> is null or an empty string, keep the record and impute it with <code>No Subject</code>.</div>
+        <div class="split-item"><strong>Pattern checks:</strong> count both-feature missingness, inspect Spam/Ham distribution among missing-subject records, and calculate missing-subject rates within each class.</div>
+      </div>
+      <div class="grid cols-3">
+        <div class="metric">
+          <div class="label">Subject Only Missing</div>
+          <div class="value">238</div>
+          <div class="detail">0.71% of raw samples.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Message Only Missing</div>
+          <div class="value">320</div>
+          <div class="detail">0.95% of raw samples.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Both Missing</div>
+          <div class="value">51</div>
+          <div class="detail">0.15% of raw samples.</div>
+        </div>
+      </div>
+      <div class="bar-list">
+        <div class="bar-row">
+          <strong>Subject only</strong>
+          <div class="bar-track"><div class="bar-fill accent" style="width: 74.37%;"></div></div>
+          <span>238</span>
+        </div>
+        <div class="bar-row">
+          <strong>Message only</strong>
+          <div class="bar-track"><div class="bar-fill amber" style="width: 100%;"></div></div>
+          <span>320</span>
+        </div>
+        <div class="bar-row">
+          <strong>Both</strong>
+          <div class="bar-track"><div class="bar-fill violet" style="width: 15.94%;"></div></div>
+          <span>51</span>
+        </div>
+      </div>
+      <div class="figure-grid">
+        <figure>
+          <img src="assets/eda_report/missing_data_percentage.png" alt="Percentage of missing data by category from the EDA notebook">
+          <figcaption>Notebook diagram: percentage of missing data by feature-missing category.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/eda_report/missing_subject_labels.png" alt="Spam and Ham distribution among missing-subject emails">
+          <figcaption>Notebook diagram: label distribution for emails with missing Subject.</figcaption>
+        </figure>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>EDA Check</th>
+            <th>Value</th>
+            <th>Decision</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Null Subject emails</td>
+            <td>289</td>
+            <td>All were Spam in the notebook's missing-subject subset.</td>
+          </tr>
+          <tr>
+            <td>Null Message emails removed</td>
+            <td>371</td>
+            <td>Drop because empty body text has no predictive value.</td>
+          </tr>
+          <tr>
+            <td>Rows after Message drop</td>
+            <td>33,345</td>
+            <td>Subject values are filled with <code>No Subject</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="insight">Missing subject is treated as a Spam signal, while missing message content is removed from the working dataset. The notebook's reasoning is that an empty message body adds no predictive value, but a missing subject can itself represent suspicious Spam behavior.</p>
+    </section>
+
+    <section>
+      <h2>Subject Line Signals</h2>
+      <div class="grid cols-3">
+        <div class="metric">
+          <div class="label">Spam No Subject Rate</div>
+          <div class="value">1.41%</div>
+          <div class="detail">Observed after subject imputation analysis.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Ham No Subject Rate</div>
+          <div class="value">0.00%</div>
+          <div class="detail">Corporate emails consistently used subjects.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Spam Style</div>
+          <div class="value">CAPS</div>
+          <div class="detail">Spam shows uppercase and suspicious-symbol outliers.</div>
+        </div>
+      </div>
+      <ul class="claim-list">
+        <li><strong>Missing subject claim:</strong> Ham emails are described as following corporate communication discipline, while some Spam emails leave the subject blank due to automated or careless sending behavior.</li>
+        <li><strong>Uppercase claim:</strong> Spam has uppercase-ratio outliers from about 2.5% to 17.5%, interpreted as attention-seeking "shouting" subject lines such as <code>URGENT</code> or <code>FREE MONEY</code>.</li>
+        <li><strong>Symbol claim:</strong> Ham occasionally uses 1 to 8 special characters for normal business purposes, while Spam has outlier tails from 3 to over 12 symbols.</li>
+      </ul>
+      <div class="figure-grid single">
+        <figure>
+          <img src="assets/eda_report/subject_line_analysis.png" alt="No Subject percentage, uppercase ratio, and suspicious symbol charts from the EDA notebook">
+          <figcaption>Notebook diagram: missing-subject ratio, uppercase ratio, and suspicious-symbol analysis for Subject lines.</figcaption>
+        </figure>
+      </div>
+      <p class="insight">The EDA notes that Ham subject lines are more conventional, while Spam subject lines show attention-seeking behavior such as uppercase spikes and punctuation abuse.</p>
+    </section>
+
+    <div class="part-header">
+      <h2>Part 4. Univariate Analysis</h2>
+      <p>Single-variable distributions across the whole dataset: length, punctuation, special characters, vocabulary, and word-cloud interpretation.</p>
+    </div>
+
+    <section>
+      <h2>Message Shape</h2>
+      <p>The EDA engineers <code>Message_Length</code> and <code>Punct_Count</code> so the raw message text can be inspected numerically before modeling.</p>
+      <div class="split-list">
+        <div class="split-item"><strong>Length distribution objective:</strong> visualize email word counts and identify where most samples fall.</div>
+        <div class="split-item"><strong>Punctuation distribution objective:</strong> inspect punctuation frequency across the whole dataset.</div>
+        <div class="split-item"><strong>Short-email limitation:</strong> an email with only one word provides almost no context for distinguishing Spam from Ham.</div>
+      </div>
+      <div class="grid cols-2">
+        <div>
+          <h3>Length and Punctuation Statistics</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Metric</th>
+                <th>Mean</th>
+                <th>Median</th>
+                <th>75%</th>
+                <th>Max</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Message Length</td>
+                <td>306.77</td>
+                <td>148</td>
+                <td>326</td>
+                <td>45,448</td>
+              </tr>
+              <tr>
+                <td>Punctuation Count</td>
+                <td>68.99</td>
+                <td>30</td>
+                <td>77</td>
+                <td>8,313</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <h3>By Label</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Label</th>
+                <th>Mean Words</th>
+                <th>Median Words</th>
+                <th>Mean Punctuation</th>
+                <th>Median Punctuation</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Ham</td>
+                <td>356.59</td>
+                <td>170</td>
+                <td>85.33</td>
+                <td>36</td>
+              </tr>
+              <tr>
+                <td>Spam</td>
+                <td>258.02</td>
+                <td>130</td>
+                <td>53.00</td>
+                <td>27</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="insight">Both message length and punctuation are heavily right-skewed. The notebook claims most emails are concise, but a long right tail contains extreme outliers such as system logs, extensive forwarded chains, attached reports dumped as text, or raw HTML junk. Ham is longer on average because internal corporate messages often contain reports, contracts, and forwarded threads.</p>
+      <p class="insight">The histogram interpretation in the notebook says most emails are under 250 words and contain fewer than 50 punctuation marks, while the KDE curve exposes a thin long tail. This visual evidence motivates the later IQR trimming step to reduce TF-IDF dimensionality, save RAM, and speed up model training.</p>
+      <div class="figure-grid single">
+        <figure>
+          <img src="assets/eda_report/length_punctuation_distribution.png" alt="Email length and punctuation distribution histograms from the EDA notebook">
+          <figcaption>Notebook diagram: right-skewed distributions of email length and punctuation count.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Special Characters</h2>
+      <div class="bar-list">
+        <div class="bar-row"><strong>.</strong><div class="bar-track"><div class="bar-fill accent" style="width: 100%;"></div></div><span>515,625</span></div>
+        <div class="bar-row"><strong>-</strong><div class="bar-track"><div class="bar-fill amber" style="width: 77.72%;"></div></div><span>400,743</span></div>
+        <div class="bar-row"><strong>,</strong><div class="bar-track"><div class="bar-fill ham" style="width: 73.58%;"></div></div><span>379,411</span></div>
+        <div class="bar-row"><strong>/</strong><div class="bar-track"><div class="bar-fill violet" style="width: 32.79%;"></div></div><span>169,062</span></div>
+        <div class="bar-row"><strong>:</strong><div class="bar-track"><div class="bar-fill spam" style="width: 30.77%;"></div></div><span>158,626</span></div>
+      </div>
+      <p class="insight">The EDA interprets periods and commas as normal writing, hyphens as email formatting and forwarded-message artifacts, and <code>:</code> plus <code>/</code> as URL evidence. It also notes that classic Spam markers such as <code>!</code> and <code>$</code> do not appear in the top 10 because the whole corpus is dominated by standard Enron corporate communication.</p>
+      <p class="insight">The underscore <code>_</code>, which appears in the notebook's top 10 list, is interpreted as an email-address or attachment-filename convention rather than normal prose.</p>
+      <div class="figure-grid single">
+        <figure>
+          <img src="assets/eda_report/top_special_characters.png" alt="Top special characters bar chart from the EDA notebook">
+          <figcaption>Notebook diagram: top 10 most frequent special characters across the dataset.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Vocabulary Profile</h2>
+      <div class="grid cols-2">
+        <div>
+          <p class="mini-title">Top words after standard stopword removal</p>
+          <div class="tag-list">
+            <span class="tag">enron</span><span class="tag">ect</span><span class="tag">com</span><span class="tag">company</span><span class="tag">please</span><span class="tag">hou</span><span class="tag">would</span><span class="tag">new</span><span class="tag">subject</span><span class="tag">information</span><span class="tag">business</span><span class="tag">gas</span><span class="tag">energy</span><span class="tag">http</span>
+          </div>
+        </div>
+        <div class="callout">
+          <strong>EDA interpretation:</strong> many frequent tokens are Enron-specific or structural email tokens. The notebook identifies these as domain-specific stopwords that can cause overfitting if kept during modeling.
+        </div>
+      </div>
+      <p class="insight">The notebook claims that tokens like <code>enron</code>, <code>ect</code>, <code>hou</code>, <code>gas</code>, and <code>energy</code> are frequent because the corpus comes from Enron's internal communication. It warns that these terms have low Spam/Ham discrimination value and can make the model overfit to Enron-specific language.</p>
+      <p class="insight">Words such as <code>subject</code>, <code>com</code>, <code>http</code>, and <code>e</code> are described as structural email or URL artifacts. The EDA treats the top frequent words as domain-specific stopwords that can overshadow truly useful Spam indicators in TF-IDF.</p>
+      <div class="figure-grid single">
+        <figure>
+          <img src="assets/eda_report/vocabulary_overview_wordcloud.png" alt="Top words and overall word cloud from the EDA notebook">
+          <figcaption>Notebook diagram: top 20 frequent words and overall word cloud after standard stopword removal.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <div class="part-header">
+      <h2>Part 5. Bivariate Analysis</h2>
+      <p>Direct Spam-vs-Ham comparison to identify features that can help the classifier.</p>
+    </div>
+
+    <section>
+      <h2>Bivariate Objectives</h2>
+      <div class="split-list">
+        <div class="split-item"><strong>Vocabulary comparison:</strong> compare distinct word frequencies between Spam and Ham after filtering Enron-specific custom stopwords such as <code>enron</code>, <code>ect</code>, <code>subject</code>, and <code>com</code>.</div>
+        <div class="split-item"><strong>Email length by label:</strong> compare message-length distributions across the two labels.</div>
+        <div class="split-item"><strong>Punctuation by label:</strong> contrast punctuation frequency and usage patterns between Spam and Ham.</div>
+        <div class="split-item"><strong>N-gram analysis:</strong> extract top bigrams to capture phrase-level semantics beyond individual words.</div>
+        <div class="split-item"><strong>Feature correlation:</strong> investigate whether <code>Punct_Count</code> and <code>Message_Length</code> show class-specific clustering.</div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Spam vs Ham Language</h2>
+      <div class="grid cols-2">
+        <div class="callout">
+          <strong>Spam vocabulary claim:</strong> Spam is promotional and deceptive, with words like click, now, make, money, product, and want. The notebook interprets this as urgency-driven phishing or unsolicited marketing.
+        </div>
+        <div class="callout">
+          <strong>Ham vocabulary claim:</strong> Ham reflects Enron's business operations, with words such as deal, billion, price, issue, work, let, know, and contact.
+        </div>
+      </div>
+      <div class="grid cols-2">
+        <div>
+          <h3>Spam Bigrams</h3>
+          <div class="tag-list">
+            <span class="tag">looking statements</span><span class="tag">don t</span><span class="tag">forward looking</span><span class="tag">investment advice</span><span class="tag">u s</span><span class="tag">within email</span><span class="tag">risks uncertainties</span><span class="tag">email address</span><span class="tag">best regards</span><span class="tag">united states</span>
+          </div>
+        </div>
+        <div>
+          <h3>Ham Bigrams</h3>
+          <div class="tag-list">
+            <span class="tag">let know</span><span class="tag">original message</span><span class="tag">j kaminski</span><span class="tag">vince j</span><span class="tag">dow jones</span><span class="tag">dbcaps data</span><span class="tag">don t</span><span class="tag">u s</span><span class="tag">et s</span><span class="tag">rights reserved</span>
+          </div>
+        </div>
+      </div>
+      <p class="insight">Spam contains investment and legal disclaimer language, suggesting pump-and-dump style campaigns. Ham contains workplace phrases and Enron-specific names/entities, which the notebook flags as dataset bias. The EDA specifically warns that names such as Vince Kaminski and organization tokens such as <code>hou</code>, <code>ect</code>, and <code>corp</code> should be treated carefully as custom stopwords to reduce memorization.</p>
+      <p class="insight">The notebook also states that URL patterns such as <code>http www</code> should be stripped with Regex, while financial terminology should be retained because it is a critical signal for malicious emails.</p>
+      <div class="figure-grid">
+        <figure>
+          <img src="assets/eda_report/spam_ham_wordclouds.png" alt="Spam and Ham word clouds from the EDA notebook">
+          <figcaption>Notebook diagram: Spam and Ham word clouds after custom stopword filtering.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/eda_report/top_bigrams_by_label.png" alt="Top bigrams for Spam and Ham from the EDA notebook">
+          <figcaption>Notebook diagram: top 10 bigrams in Spam and Ham after stopword removal.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section>
+      <h2>Email Length By Label</h2>
+      <div class="grid cols-3">
+        <div class="callout">
+          <strong>Ham is longer:</strong> median Ham length is 170 words, while median Spam length is 130 words.
+        </div>
+        <div class="callout">
+          <strong>Ham uses more punctuation:</strong> median Ham punctuation is 36 marks, while Spam is 27 marks.
+        </div>
+        <div class="callout">
+          <strong>Classification value:</strong> the EDA concludes that <code>Message_Length</code> and <code>Punct_Count</code> should be retained for later model training.
+        </div>
+      </div>
+      <p class="insight">The notebook rejects the assumption that Spam is always excessively long. It describes Spam as concise and template-like, while Ham can vary from a one-word reply to very long forwarded chains, reports, contracts, or handbook-like text.</p>
+      <div class="figure-grid">
+        <figure>
+          <img src="assets/eda_report/length_punctuation_by_label.png" alt="Email length and punctuation comparison by label from the EDA notebook">
+          <figcaption>Notebook diagram: label-wise boxplots for email length and punctuation count.</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/eda_report/length_punctuation_correlation.png" alt="Scatterplot of email length and punctuation count by label from the EDA notebook">
+          <figcaption>Notebook diagram: correlation between email length and punctuation amount by label.</figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <div class="part-header">
+      <h2>Part 6. Outlier Detection</h2>
+      <p>IQR-based pruning decision for extreme message lengths.</p>
+    </div>
+
+    <section>
+      <h2>Outlier Detection</h2>
+      <p>The notebook applies the IQR method to <code>Message_Length</code> and focuses on the upper bound because email length cannot be negative.</p>
+      <div class="grid cols-4">
+        <div class="metric">
+          <div class="label">Q1</div>
+          <div class="value">67</div>
+          <div class="detail">Words.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Q3</div>
+          <div class="value">326</div>
+          <div class="detail">Words.</div>
+        </div>
+        <div class="metric">
+          <div class="label">IQR Upper Bound</div>
+          <div class="value">714.5</div>
+          <div class="detail">Emails above this are outliers.</div>
+        </div>
+        <div class="metric">
+          <div class="label">Outliers</div>
+          <div class="value">2,673</div>
+          <div class="detail">8.02% of the EDA working set.</div>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Outlier Label</th>
+            <th>Count</th>
+            <th>Meaning</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Ham</td>
+            <td>1,459</td>
+            <td>Long internal chains, reports, or structural artifacts.</td>
+          </tr>
+          <tr>
+            <td>Spam</td>
+            <td>1,214</td>
+            <td>Long spam bodies or raw HTML-like junk.</td>
+          </tr>
+          <tr>
+            <td>Remaining normal emails</td>
+            <td>30,672</td>
+            <td>Retained after pruning the long-tail outliers.</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="insight">The EDA chooses to prune the sub-10% long-tail outlier group while preserving enough data and avoiding severe class imbalance. The notebook justifies the 714.5-word threshold as practical because ordinary business or promotional emails rarely exceed roughly two A4 pages.</p>
+      <p class="insight">The notebook's pruning claim is that texts above this threshold are mostly structural artifacts, deeply nested forward chains, attached reports dumped as text, or raw HTML junk. Forcing the model to learn from them would add noise and increase overfitting risk.</p>
+    </section>
+
+    <div class="part-header">
+      <h2>Part 7. Final EDA Output</h2>
+      <p>Important features kept after EDA and the final report takeaways.</p>
+    </div>
+
+    <section>
+      <h2>Important Features</h2>
+      <p>The notebook identifies the following fields as important after the EDA stage:</p>
+      <div class="tag-list">
+        <span class="tag">Subject</span>
+        <span class="tag">Message</span>
+        <span class="tag">Spam/Ham</span>
+        <span class="tag">Message_Length</span>
+        <span class="tag">Punct_Count</span>
+      </div>
+      <p class="insight">The EDA also shows a random 10-sample preview balanced 50/50 between Ham and Spam, confirming the final working view of the dataset before the notebook moves into preprocessing.</p>
+      <table>
+        <thead>
+          <tr>
+            <th>Label</th>
+            <th>Subject</th>
+            <th>Message Preview</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ham</td>
+            <td>enron / hpl actuals for nov . 28 , 2000</td>
+            <td>teco tap 30 . 000 / enron ; 120 . 000 / hpl gas daily</td>
+          </tr>
+          <tr>
+            <td>ham</td>
+            <td>start date : 1 / 27 / 02 ; hourahead hour : 16 ;</td>
+            <td>start date : 1 / 27 / 02 ; hourahead hour : 16 ; no ancillary schedules awarded . no variances detected . log messages : parsing file...</td>
+          </tr>
+          <tr>
+            <td>ham</td>
+            <td>re : cplex</td>
+            <td>i agree . i ( or chonawee ) will go ahead and place the order for cplex . i think that this will provide us with a great set of tools...</td>
+          </tr>
+          <tr>
+            <td>ham</td>
+            <td>re : solarc</td>
+            <td>didn &#39; t get a commitment . just told them i thought it would be impossible . original message : louise . kitchen @ enron...</td>
+          </tr>
+          <tr>
+            <td>ham</td>
+            <td>re : tenaska iv</td>
+            <td>i tried calling you this am but your phone rolled to someone else &#39; s voicemail . can you call me when you get a chance ?...</td>
+          </tr>
+          <tr>
+            <td>spam</td>
+            <td>bait - excelled @ em . ca your card is waiting to be activated</td>
+            <td>having problems seeing the graphics ? please go here . platinum benefit group , inc . urgent notice prior code # 1 case type : 1567...</td>
+          </tr>
+          <tr>
+            <td>spam</td>
+            <td>illustrator 10 clearance</td>
+            <td>great deal microsoft , adobe , macromedia and many more ! check out these amazing offers : microsoft office xp pro...</td>
+          </tr>
+          <tr>
+            <td>spam</td>
+            <td>office xp - $ 60 defecate unreliable</td>
+            <td>arrestor interface volcanos transcend fanout erring monogamous executioner applicability speared maddening tale gathered...</td>
+          </tr>
+          <tr>
+            <td>spam</td>
+            <td>from olsom berghart of yukos oil</td>
+            <td>dear friend , i am mr olsom berghart a personal treasurer to mikhail khodorkovsky the richest man in russia...</td>
+          </tr>
+          <tr>
+            <td>spam</td>
+            <td>how is my girlfriend in the hospital</td>
+            <td>unsubscribe andrei hedonistepstein rebelled arkansanhattiesburg second ghettoinroad syllabic...</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Final EDA Takeaways</h2>
+      <div class="grid cols-3">
+        <div class="callout">
+          <strong>Balanced labels:</strong> Spam and Ham are close enough for a stable classification starting point.
+        </div>
+        <div class="callout">
+          <strong>Text cleanup needed:</strong> Enron-specific words, names, URLs, and email artifacts can dominate the vocabulary.
+        </div>
+        <div class="callout">
+          <strong>Feature signals:</strong> missing subject, uppercase subject behavior, length, punctuation, and financial bigrams are useful classification clues.
+        </div>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
